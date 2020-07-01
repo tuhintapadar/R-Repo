@@ -1,0 +1,664 @@
+---
+title: 'Assignment 1: Data 9910 - Working with Data'
+author: "Tuhin Subhra Tapadar [D19125073]"
+date: "1st November 2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+1. Introduction
+    + 1.1 Objective
+    + 1.2 Data Source
+    + 1.3 Load Packages
+    + 1.4 Load and check data
+2. Feature Engineering
+    + 2.1 Excess Column!
+    + 2.2 All data are not about counties.
+    + 2.3 Handling of 'NA' values.
+3. Data Exploration
+    + 3.1 Creation of Graphs
+    + 3.2 Effect of globalisation
+    + 3.3 Feature Engineering: Round 2
+    + 3.4 Analysis through more Graphs
+4. Conclusion
+5. Reference
+
+# **1. Introduction**
+
+I think for the last few decades globalisation has made a tremendous effect on human history. It is claimed that the globalisation just not only breaks the barriers of trade but also uplift the well-being of the society in general and I want to see how successful that claim is! And I have taken the help of **R** to explore that claim.
+
+The idea of this task is to explore various capabilities of R in terms of data import, clean, explore and visualisation. And for this purpose I have chosen three datasets:
+
+A.	World GDP Data between 1960 to 2018
+B.	World population data between 1960 to 2018.
+C.  World life expectancy data for the same period.
+
+All the datasets are available for free from the World Bank site <https://data.worldbank.org> under *Creative Commons Attribution 4.0 (CC-BY 4.0)* license. 
+
+
+
+## **1.1. Objective**
+
+I have tried to maintain this data flow for the data science as shown in the below figure i.e. import of data then tidy-up data, next transform them as necessary and then create a data model for the visualization and communicate the process with the audience. Except for some standard statistical analysis, we are not doing any kind of machine learning algorithm for this task. Therefore, the data model that we have created here is solely for the data analysis and visualization purpose.
+
+![](C:/Users/Tuhin/Documents/R Files/datapipeline.png)
+
+## **1.2.	Source of dataset**
+* World GDP Data between 1960 to 2018.                   https://data.worldbank.org/indicator/ny.gdp.mktp.cd 
+* World population data between 1960 to 2018.            https://data.worldbank.org/indicator/SP.POP.TOTL
+* World life expectancy data for the same period.        https://data.worldbank.org/indicator/SP.DYN.LE00.IN
+
+All though these data are coming from diffent data source I have merge them into a single data-set for our analysis. Having said that I have also subset the data whenever it is necessary.  
+
+## **1.3. Load of Packages**
+
+```{r load packages, message=FALSE, warning=FALSE}
+# Load packages
+library('readxl') # reading excel file
+library('readr') # reading CSV file
+library('tidyr') # data manipulation 
+library('dplyr') # data manipulation
+library('ggplot2') # data visualisation
+library('GGally') # paired visualisation
+library('ggrepel') # controling text within the ggplot visual
+library('forcats') # reordering the categorical variable
+
+```
+
+Instead of loading **tidyr**, **readr**, **dplyr** and **ggplot2** individually we could have load **tidyverse**, because all these packages are core part of the tidyverse. But here, I have loaded different packages individually to get a sense of the functionality of each package. **GGally** is used to visualise the corelation of the variables and **ggrepel** is used to control the some of the text within ggplot graphs. **forcats** helps to explore the reorder of categorical variables.
+
+## **1.4. Load and Check dataset**
+
+Since our packages are already loaded, we need to load our dataset from the working directory. 
+
+```{r message=FALSE, warning=FALSE}
+# We can use getwd() to find the current working directory and setwd() to a new working directory
+# getwd()
+# setwd()
+# If we are not sure about the working directory then we can these commands to set the working direcotry. And the source files should be kept on the working directory or we we need to give the entire path of the file(s) location.
+
+gdpdata <- read_excel('~/R Files/API_NY.GDP.MKTP.CD_DS2_en_excel_v2_315892.xls', sheet = 1, skip=3, na = "")
+popdata <- read_csv('API_SP.POP.TOTL_DS2_en_csv_v2_382278.csv', skip = 4, na = "")
+lexdata <- read_csv('API_SP.DYN.LE00.IN_DS2_en_csv_v2_382381.csv', skip = 4, na = "") 
+
+```
+Here, I have used `read_excel()` and `read_csv()` to read the data files but I can have used some other file reading function to carry out the same job such as `read.csv()` or `read.table()`from the base version. I have given the example of both of these functions here.
+
+`popdata <- read.csv('API_SP.POP.TOTL_DS2_en_csv_v2_382278.csv', skip = 4, header = T, stringsAsFactors = F)`
+and 
+`lexdata <- read.table('API_SP.DYN.LE00.IN_DS2_en_csv_v2_382381.csv', skip = 4, header = T, stringsAsFactors = F, sep = ",")`
+
+`read_excel()` is coming from **readxl** package which is specialised in reading/writing data from/to 'MS Excel' file format. It has some more powerful capabilities such as skipping the number of rows [e.g. I have skipped first 3 rows of the Excel file] or reading between the range of cells or reading from a specified sheet etc.  
+
+In contrast `read_csv()` which part of **readr** package is much more versatile and fast than the base version of `read.csv()` function.
+
+As we can see both have automatically created a data frame of 264 rows and 63 columns with appropriate column header and all the blank are replaced with 'na' value. Both of these functions can identify the column data type to some extent [such as string, numeric etc] but some time they need to be converted to some other datatype depends on our necessity.
+
+```{r View Function, echo=FALSE}
+#View() shows entire dataset, if the dataset is big then it can significant time to load entire dataset from the View() command. After loading the dataset from the View() command we can filter or sort the data graphically. 
+#View(gdpdata)
+```
+```{r str function}
+str(gdpdata)
+```
+
+**str()** function gives the information about  each and every variable/column in the data frame. And it is a good place to start with the data wrangling because if necessary we can change the data type of the column(s) based on our requirements or remove any unnecessary column(s).
+ 
+```{r head function}
+head(gdpdata)
+```
+
+`head()` is another function which gives the glance of the dataset by showing first six rows but we can control the number of rows by using **"n"** parameter within the head(). I have demonstrated it in a later section.
+
+```{r tail function}
+tail(gdpdata)
+```
+
+`tail()`, it works same as `head()` except it shows only last six rows instead and we use **"n"** parameter to control the number of displayed rows. 
+
+
+#### **Let us explore the columns of the GDP dataset a little more.**
+
+Variable Name   |   [Data Type] |Description
+----------------|---------------|---------------------------------
+Country Name    |   [String]    | Name of the countries
+Country Code    |   [String]    | 3 chararcter code for each country
+Indicator Name  |   [String]    | Constant value "GDP (Current US$)"
+Indicator Code  |   [String]    | Constant value "NY.GDP.MKTP.CD"
+1960            |   [Numeric]   | GDP Value
+:               |   :           | :
+2018            |   [Numeric]   | GDP Value
+-----------------------------------------------------------------
+
+Some of these columns are important others are not, those which are are not can be discarded and in some cases, we need to change the data type as well that I have discussed them in the later sections. Here, it is good to mention that I am describing everything with respect to _"GDP"_ dataset but I have done the same treatment for all other datasets such as Population and Life Expectancy data.
+
+# **2. Feature Engineering**
+
+>It is often said that 80% of data analysis is spent on the process of cleaning and preparing the data. (Dasu and Johnson, 2003)
+
+And I take a queue from this philosophy and try to structure the data in such a way that it can be easier to understand. A Well structured data serves two main purposes:
+
+* Makes data suitable for software processing whether that be defining any mathematical functions, visualization, etc.
+* Reveals information and insights about the data.
+
+Next, I proceed with the data cleaning and preparing process.
+
+## **2.1. Excess Column!**
+
+As we can see that the _'Indicator Name'_ and _'Indictor Code'_ columns contain same value **"GDP (Current US$)"** & **"NY.GDP.MKTP.CD"** for each row and do not signify anything important for the dataset. Therefore, I will remove these columns from the dataset in order to concise the dataset and make it less resource hungry. Since we want to keep our data until the year 2016, we have removed both 2017 and 2018 columns. 
+
+```{r remove clumns from GDP data}
+gdpdata <- gdpdata[, -c(3,4,62,63)]
+
+```
+
+Same kind of operation is done for the population data and we have removed **Indicator.Name** , **Indicator.Code**, **X64**, **2017** and **2018** columns.
+
+```{r Removing data from population data}
+popdata <- popdata[, -c(3,4,62,63,64)]
+
+```
+
+Similarly, same operation is done for the life expectancy data and we have removed **Indicator.Name**, **Indicator.Code**,  **X64**, **2017** and **2018** columns.
+
+```{r Removing data from life expectancy data}
+lexdata <- lexdata[, -c(3,4,62,63,64)]
+
+```
+
+## **2.2.  All data are not about countries.**
+
+First, we want to see which are the top fifteen countries in terms of GDP from our GDP dataset. And we have chosen randomly 2016 for that purpose. Here, we have used a temporary variable for my visualisation.
+
+As we can see in this data set there are some data apart from the country data such as World, European etc which are not particularly related to any typical county and thus does not part of our data exploration so they need to be removed from the GDP data. And we want to see how it looks like with all those data. 
+
+
+```{r top 15 countrues in 2016, echo=FALSE}
+temp1 <- arrange(gdpdata, desc(`2016`)) %>% top_n(15, `2016`)
+
+ggplot(temp1, aes(x=reorder(`Country Name`, +`2016`), y = `2016`))  + geom_col(fill = "#ff6666") +coord_flip() + ggtitle('Top 15 Countries by GDP for 2016') + xlab(' Country ') + ylab('GDP in Billions') + theme_bw()  + 
+  theme(panel.background = element_rect(fill = "linen") ,
+        plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12)) + 
+  scale_y_continuous(labels = scales::unit_format("B", 1e-9))
+
+```
+
+As we can see in this data set except the USA none of the top fifteen entries is any particular countries such as *World*, *European Union* etc. Since we are not interested in these observations we need to remove them from the GDP data dataset. Here, we need to device a mechanism to remove these values. Fortunately, on the second sheet of the excel file, we can find the name and code of the real countries along with `Region` & `IncomeGroup` information.
+
+```{r loading country metadata}
+countrymetadata <- read_excel('~/R Files/API_NY.GDP.MKTP.CD_DS2_en_excel_v2_315892.xls', sheet = 2, na = "")
+head(countrymetadata, n=15)
+
+```
+
+On close observation of this dataset, we can see a pattern. For each non-country elements, the 'Region' and 'IncomeGroup' values are 'blank' whereas for others they are not blank. Because these non-country specific data do not belong any particular 'Region' or IncomeGroup'. So, I have used the `filter()` function to find the data for those non-country elements. 
+
+```{r non country rows}
+noncountry <- filter(countrymetadata, is.na(Region) & is.na(IncomeGroup))
+head(noncountry, n=10)
+```
+
+Now, we make an **anti_join()** to remove those non-country data from the country list. And, finally, we have a data frame that contains only the data for actual countries. 
+
+```{r anti join}
+realcountry <- anti_join(countrymetadata, noncountry, by=c('Country Code'))
+nrow(realcountry)
+```
+```{r head funtion of countries}
+head(realcountry, n=10)
+```
+
+Next, I have removed the _SpecialNotes_ and _TableName_ columns which are not important for us.
+
+```{r selected column of country meta data}
+realcountry <- select(realcountry, "Country Code", "Region", "IncomeGroup")
+head(realcountry, n=10)
+```
+
+Now, we have merged the GDP data with the list of countries through `inner_join` and this way I have removed all non-country related data from the GDP dataset.
+
+```{r final gdp data}
+finalgdpdata <- inner_join(gdpdata, realcountry, by=c('Country Code'))
+nrow(finalgdpdata)
+```
+
+As we can see that we have only 217 rows, so, we can firmly say that we have successfully removed all non-country specific data from the GDP dataset.
+
+In a similar fashion, we can extract the data only for the actual countries for population and life expectancy dataset.
+
+```{r final population data}
+finalpopdata <- inner_join(popdata, realcountry, by=c('Country Code'))
+nrow(finalpopdata)
+```
+```{r final life expectancy data}
+finallexdata <- inner_join(lexdata, realcountry, by=c('Country Code'))
+nrow(finalpopdata)
+```
+
+
+#### **Top fifteen countries in terms of GDP for the year 2016.**
+
+```{r echo=FALSE}
+temp2 <- arrange(finalgdpdata, desc(`2016`)) %>% top_n(15, `2016`)
+
+ggplot(temp2, aes(x=reorder(`Country Name`, +`2016`), y = `2016`))  + geom_col(fill = "#ff6666") +coord_flip() + ggtitle('Top 15 Countries by GDP for 2016') + xlab('Country') + ylab('GDP in Billions') + theme_bw() + 
+  theme(panel.background = element_rect(fill = "linen"),
+        plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12)) +  
+  scale_y_continuous(labels = scales::unit_format("B", 1e-9))
+```
+
+Now, we have a graph for the top fifteen countries in terms of GDP for the year 2016. 
+
+```{r}
+str(finalgdpdata)
+
+```
+
+As we can see there are few columns which are considered as a string but in reality, they should be a factor because **Country Code**, **Country Name**, **Region** and **IncomeGroup** are having repetitive data. So, I have converted these columns into a categorical variable from the string variable.
+
+Although in my dataset there is not much scope to convert to different data type but it is good practice to convert the data type of the columns as per their requirement after loading the data.
+
+```{r factor conversion}
+finalgdpdata$`Country Name` <- as.factor(finalgdpdata$`Country Name`)
+finalgdpdata$`Country Code` <- as.factor(finalgdpdata$`Country Code`)
+finalgdpdata$`Region` <- as.factor(finalgdpdata$`Region`)
+finalgdpdata$`IncomeGroup` <- as.factor(finalgdpdata$`IncomeGroup`)
+str(finalgdpdata)
+```
+
+As we can see now, I have converted these columns into factor, later this will help us with our analysis and visualisation.
+
+## **2.3. Handling the 'NA' values.**
+
+```{r no of rows and columns}
+nrow(finalgdpdata)
+ncol(finalgdpdata)
+```
+
+Now we have a dataset of 61 columns and 217 rows. Next, we need to calculate how many **"na"**" data we have within our dataset.
+
+```{r missing na}
+# First create a variable that will put TRUE value for each 'na' value which will put 1 for TRUE and 0 for FALSE value
+missingna  <- is.na(finalgdpdata)
+# Next, use to colSums() to sum the values of all ones.
+totalmissingna <- colSums(missingna)
+# Finally, this will show us the columns for which sum value is greater than 0.
+totalmissingna[totalmissingna > 0]
+
+```
+
+```{r total na}
+# This will give us total sum of all 'na' values.
+sum(totalmissingna)
+
+(sum(totalmissingna)/(61*217))*100
+
+```
+This is about one-fourth of the total data and it is quite a high number of **"na"** so I am not going to delete all of them but I will handle them as per our requirements.
+
+
+# **3. Data Exploration**
+
+## **3.1. Creation of Graphs.**
+
+As **_John Tukey_** once said 
+
+>"simple graph has brought more information to the data analyst’s mind than any other device.”
+
+And based on his philosophy, I have made my data exploration and tried to use the more visualisation to explore the data.  
+
+### **_What Is The Grammar Of Graphics?_**
+
+The idea is very simple, creating the building block of plotting element independently and then stitch them together in order to achieve a graphical display. The elements of the graph are given below:
+
+
+* data
+* aesthetic mapping
+* geometric object
+* statistical transformations
+* scales
+* coordinate system
+* position adjustments
+* faceting
+
+We can use some or all of these elements to generate a successful graph that is easy to understand and visually interesting. 
+
+## **3.2. Effect of globalisation.**
+ 
+As per wikipedia <https://en.wikipedia.org/wiki/World_Trade_Organization>
+ 
+>The WTO launched the current round of negotiations, the Doha Development Round, at the fourth ministerial conference in Doha, Qatar in November 2001. This was to be an ambitious effort to make globalization more inclusive and help the world's poor, particularly by slashing barriers and subsidies in farming. The initial agenda comprised both further trade liberalization and new rule-making, underpinned by commitments to strengthen substantial assistance to developing countries
+
+A part of my analysis of the data, I try to find the differences at the beginning of the implementation of the principle of WTO (World Trade Organisation) agreement i.e. 2001 and it's effect on 2016. This way we can measure how much progress has happened in the last two decades and who are the main beneficiaries of the agreement. 
+
+So, at this stage I will consider the data from 2001 to 2016 only. Therefore I will discard other columns.  
+
+```{r discarding unwanted columns}
+clrgdpdata <- select(finalgdpdata, -c('1960','1961','1962','1963','1964','1965','1966','1967','1968','1969','1970','1971','1972','1973','1974','1975', '1976', '1977', '1978', '1979', '1980', '1981', '1982', '1983', '1984', '1985', '1986', '1987','1988', '1989','1990', '1991', '1992', '1993', '1994' ,'1995', '1996', '1997', '1998','1999', '2000'))
+str(clrgdpdata)
+
+```
+
+```{r}
+# Showing summry detial of the data frame
+summary(clrgdpdata)
+```
+
+From this summary statistics, we can have an overall idea of this data frame, as we can see there are 217 rows for 'Country Name' and  'Country Code' column and each row represent each of these countries and both of these columns are factor data type. 
+While all the year related columns are numeric datatype and all of them has a certain amount of 'NA' values. Also, there are seven unique values for the 'Region' column and four for the 'IncomeGroup' column. 
+From the 'Region' column we can also say that the highest number of countries belongs to 'Europe & Central Asia' region i.e 58 and followed by 'Sub-Sharan Africa' (48) and 'Latin America & Caribbean' (42) group and the least number of countries belongs to 'North America' which is only 3. 
+In a similar way, from the 'IncomeGroup' column we can say the highest number of countries belonging to 'High Income' (79) group followed by 'Upper Middle Income' (60) group whereas least number of countries belonging to 'Low income' (31) group. From these numerical columns, we can also see there is a significant amount of differences between the minimum and the maximum values. The minimum values are in the order of $10^{7}$ whereas the maximum values are in the order of $10^{13}$, I think using a log scale will be one of our solutions to build visually aesthetic graphics.
+
+#### **Top 20 Countries in terms of GDP for the year 2001 and 2016**
+
+```{r top 20 countries in 2001 and 2016}
+top20_2001 <- arrange(finalgdpdata, desc(`2001`)) %>% top_n(20, `2001`) %>% select("Country Code", "Country Name" ,"2001")
+top20_2016 <- arrange(finalgdpdata, desc(`2016`)) %>% top_n(20, `2016`) %>% select("Country Code", "Country Name","2016")
+
+top20_2001_2016 <- merge(x=top20_2001, y=top20_2016, by = "Country Code", all = T)
+col_order <- c("Country Code", "Country Name.x", "Country Name.y", "2001", "2016")
+top20_2001_2016 <- top20_2001_2016[,col_order]
+top20_2001_2016 <- arrange(top20_2001_2016, desc(`2001`))
+top20_2001_2016
+
+```
+
+Here, first I filter top 20 in terms of GDP for the year 2001 and then sort them in descending order and then select the top 20 countries from that arrangement. I have to repeat the same procedure but this time for 2016 and finally merge them into a new data frame.
+
+```{r echo=FALSE}
+ggplot(top20_2001_2016, aes(x=reorder(`Country Name.x`, +`2001`), y = `2001`))  + geom_col(fill = "#ff6666") + coord_flip() + ggtitle('Top 20 Countries by GDP for 2001') + xlab('Country') + ylab('GDP in Billions') + scale_y_continuous(labels = scales::unit_format("B", 1e-9)) + theme_bw() + theme(panel.background = element_rect(fill = "linen"),
+        plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12))
+```
+
+As we can see in the year 2001 the USA was in the first place followed by Japan, Germany and the United Kingdom."NA" represents those counties which are not in top 20 in 2001 but present in 2016.
+
+```{r echo=FALSE}
+ggplot(top20_2001_2016, aes(x=reorder(`Country Name.y`, +`2016`), y = `2016`))  + geom_col(fill = "#ff6666") + coord_flip() + ggtitle('Top 20 Countries by GDP for 2016') + xlab('Country') + ylab('GDP in Billions') + scale_y_continuous(labels = scales::unit_format("B", 1e-9)) + theme_bw() + theme(panel.background = element_rect(fill = "linen"),
+        plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12))
+
+```
+
+But in the year 2016 the ranking has changed, 'China' takes the second position from the sixth, similarly, India also made good progress. In fact, there are a few new entries in this graph. So I think it will be a good idea if we over-lap all the countries between 2001 and 2016 to have a better idea.
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(top20_2001_2016, aes(x=`Country Code`)) + geom_col(aes(y = `2001`), fill = "#ff6666")  + 
+geom_area(aes(y = `2016`), colour = 'black') + coord_flip() +
+ggtitle('Top 20 Countries by GDP for 2001 vs 2016') + xlab('Country') + ylab('GDP in Billions') +scale_y_continuous(labels = scales::unit_format("B", 1e-9)) + 
+  theme_bw() + theme(panel.background = element_rect(fill = "linen"),                         plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12))
+
+```
+
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(top20_2001_2016, aes(x=reorder(`Country Name.y`, +`2016`))) + geom_col(aes(y = `2001`), fill = "#ff6666")  + 
+geom_area(aes(y = `2016`), colour = 'black') + coord_flip() +
+ggtitle('Top 20 Countries by GDP for 2001 vs 2016') + xlab('Country') + ylab('GDP in Billions') +scale_y_continuous(labels = scales::unit_format("B", 1e-9)) + 
+  theme_bw() + theme(panel.background = element_rect(fill = "linen"),                         plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12))
+
+```
+
+Here, we can see some countries such as Turkey, Saudi Arabia and Indonesia emerged as the booming economy in the year 2016 whereas Sweden, Belgium and Argentina slip from their old position. 
+
+##  **3.3. Feature Engineering: Round 2**
+
+At this stage, I have realised it will much easy to analyse the data if I can convert the year related columns into rows because it will be much easy to filter the data from rows than columns. Hene, I have used some other functionality of **"tidyr"**, converting columns into rows by using `gather()`
+
+```{r converting cols into rows}
+colgdp <- gather(finalgdpdata, key = year, value = value, -c("Country Code", "Country Name","Region", "IncomeGroup"))
+colpop <- gather(finalpopdata, key = year, value = value, -c("Country Code", "Country Name","Region", "IncomeGroup"))
+collex <- gather(finallexdata, key = year, value = value, -c("Country Code", "Country Name","Region", "IncomeGroup"))
+```
+
+```{r sorting based on Country Code}
+# sorting the data through Country Code.
+colgdpsort <- arrange(colgdp, `Country Code`)
+colpopsort <- arrange(colpop, `Country Code`)
+collexsort <- arrange(collex, `Country Code`)
+```
+
+```{r renaming the column}
+# Renaming the columns
+names(colgdpsort)[names(colgdpsort) == 'value'] <- 'gdpvalue'
+names(colpopsort)[names(colpopsort) == 'value'] <- 'popvalue'
+names(collexsort)[names(collexsort) == 'value'] <- 'lexvalue'
+```
+
+After renaming the column I have merged all three data sets of GDP, Population and Life Expectancy. Then I have created three more columns by using `mutate()` function. One, the column for GDP Per Capita (gdppercap) by using the formula *(gdpvalue / popvalue)*, two, GDP  in Million (gdpinmill) using the formula *(gdpvalue / 1000000)* and finally Population in Million by using the formula *(popvalue / 1000000)*.
+
+```{r merging all dataset}
+colpopsort <- select(colpopsort, popvalue)
+collexsort <- select(collexsort, lexvalue)
+granddata <- cbind(colgdpsort, colpopsort, collexsort)
+head(granddata)
+#View(granddata)
+granddata1 <- mutate(granddata, gdppercap = gdpvalue/popvalue, gdpinmill = gdpvalue/1000000, popinmill = popvalue/1000000 )
+#View(granddata1)
+```
+
+```{r}
+summary(colgdpsort)
+```
+
+
+##  **3.4. Analysis through Graphs.**
+
+#### **_Summary of GDP for differnt income groups._**
+
+```{r boxplot for income group, echo=FALSE}
+ggplot(granddata1, aes(x = IncomeGroup, y = gdpinmill, colour= IncomeGroup)) + geom_boxplot() + scale_y_log10() + theme_bw() + theme(legend.position = "none", 
+      panel.background = element_rect(fill = "linen"), 
+      plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12)) + labs( y="GDP (in Million)", x = "Income Group", title ="GDP (in Million) for different Income Groups over the entire period")
+```
+
+Here, I have displayed the GDP value for each of the Income Group over the entire period with a box plot visualisation. The main idea of this visualisation to see, how the median values behave for each income groups as the median is not sensitive to outliers. I have used the log scale on the y-axis in order to get a better visual but that comes with a caveat, I cannot order the visual in any particular order such as ascending/descending order of median etc. and the amount of outlier does not depict truly except a few for the Lower middle-income group. 
+
+#### **_Region wise summary of GDP over entire time period. _**
+
+```{r boxplot for region, echo=FALSE,warning=FALSE}
+ggplot(granddata1, aes(x = Region, y = gdpinmill, fill = Region)) + geom_boxplot() + scale_y_log10() +theme_bw() + labs(x = "Region", y = "GDP (in Million)" , title = "Total GDP per Region") + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "linen"), 
+        plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12), 
+        axis.text.x = element_text(angle = -15, hjust = 0))
+                                                          
+```
+
+Here, I have displayed the GDP value for each of the Region over the entire period with a box plot visualisation. In this graph, I have used `axis.text.x = element_text()` to control the inclination of the text on the X-axis to have a better fit that makes it visually aesthetic. 
+
+#### **_Change of Life Expectancy with the GDP for differnt income group. _**
+
+```{r scatter plot le vs gdp, echo=FALSE, message=FALSE}
+ggplot(granddata1, aes(x =gdppercap , y = lexvalue, colour = IncomeGroup)) + geom_point()   + labs(x = "GDP per Capita", y = "Life Expectancy" , title = "Life Expectancy vs GDP per Capita for diff. Income Group.")  + geom_smooth(colour= "black") +theme_bw() + 
+  theme(panel.background = element_rect(fill = "linen"),                         plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12)) + scale_x_continuous(labels = scales::unit_format("K", 1e-3))
+  
+```
+
+This is a scatter plot, where GDP per Capita is plotted against the Life Expectancy but then I segregate them in terms of Income Group. And as expected higher income group has higher life expectancy but surprisingly, the graph is not a simple straight line curve. Even with a small per capita per year income life expectancy is quite high. But again for the low-income group has less life expectancy. Point to remember this data is plotted between 1960 to 2016, so, I guess for recent years this figure could be quite different. 
+
+```{r scatter plot le vs gdp for 2016, echo=FALSE, message=FALSE}
+
+granddata1 %>% filter(year == "2016") %>% ggplot(., aes(x =gdppercap , y = lexvalue, colour = IncomeGroup)) + geom_point()   + labs(x = "GDP per Capita", y = "Life Expectancy" , title = "Life Expectancy vs GDP per Capita for different Income Group for 2016.")  + geom_smooth(colour= "black") +theme_bw() + 
+  theme(panel.background = element_rect(fill = "linen"),                         
+        plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12)) + scale_x_continuous(labels = scales::unit_format("K", 1e-3))
+``` 
+
+And as expected, the minimum life expectancy becomes higher compared to the overall period. But we have the same type of trend line i.e. higher GDP per Capita leads to in general better health. Or in other word richer countries have better health care system.
+
+
+#### **_Change of Mean Life Expectancy over the period of time._**
+```{r le vs year, echo=FALSE}
+dataforgroup1 <-granddata1
+
+temp8 <- dataforgroup1 %>% group_by(year, IncomeGroup) %>% summarise(meanlex = mean(lexvalue, na.rm = T))
+
+ggplot(temp8, aes(x=year, y = meanlex, colour = IncomeGroup ))  + geom_point() + labs(x = "Year", y = "Mean Life Expectancy" , title = "Change of Mean Life Expectancy over the period of time.") + geom_line(colour = "#033F63") +theme_bw() +
+theme(axis.text.x = element_text(angle = -90, hjust = 1), 
+      panel.background = element_rect(fill = "linen"),                         
+      plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12)) +
+      scale_x_discrete(breaks = c("1960", "1970", "1980", "1990", "2000", "2010", "2016")) + scale_colour_discrete("Income Group")
+  
+```
+
+This graph is showing how the average life expectancy went through changes over the period of time, based on the income groups. And the graph shows there is a steady growth in life expectancy over the years for every income group. Although, we can see there was a sudden small drop between the late 80s and mid-90s for Low-Income group. Interestingly, the gaps in the life expectancy between the income groups becoming smaller over the period and I have used the `geom_line()` to highlight that factor.
+
+
+#### **_Change of poluation over the years for each Income Group._**
+```{r echo=FALSE}
+dataforgroup2 <-granddata1
+
+temp8 <- dataforgroup2 %>% group_by(year, IncomeGroup) %>% summarise(totalpop = sum(popvalue, na.rm = T))
+
+ggplot(temp8, aes(x=year, y = totalpop, colour = IncomeGroup ))  + geom_point() + labs(x = "Year", y = "Population" , title = "Change of Total Population over the period of time.")  + 
+theme(axis.text.x = element_text(angle = -90, hjust = 1), 
+     
+      panel.background = element_rect(fill = "linen"),                         
+      plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12)) +
+      scale_x_discrete(breaks = c("1960", "1970", "1980", "1990", "2000", "2010", "2016")) + 
+      
+      scale_colour_discrete("Income Group") + scale_y_continuous(labels = scales::unit_format("B", 1e-9)) 
+      
+```
+
+This is a very interesting graph that actually derived from the previous graph, but here I have shown the changes in total population based on the income groups. And as we can see there are relatively small growth of population for high and low-income groups whereas almost exponential growth for the lower-middle-income group which itself close to 3 billion people in recent years but there is also high growth for the upper-middle-income group. 
+
+Now, if we think higher income with higher life expectancy and a low rate of population growth means these countries are having high amount of old people. 
+
+#### **_Change of poluation over the years for each Region_**
+
+```{r echo= FALSE}
+dataforgroup <- granddata1
+temp10 <- dataforgroup %>% group_by(year, Region) %>% summarise(totalpop = sum(popvalue, na.rm = T))
+
+ggplot(temp10, aes(x = year, y = totalpop, fill = Region)) + geom_col() + theme_classic() + scale_x_discrete(breaks = c(seq(1960,2010,10),2016)) +theme(legend.position = "right" ) + labs( x = "Years", y = "Total Population", title = " Change of poluation over the years for each Region")+ scale_y_continuous(labels = scales::unit_format("B", 1e-9))
+
+```
+
+Since we have seen the population growth. Now I want to see which are region has the most contribution and how the change has happened over the period of time in terms of population. So I have populated the total population for each region for the same time period. As the result shows, in 1960 the total population was about 3 billion but in 2016 the world population become around 7 billion. And major contribution has come from South Asia and East Asia & Pacific region. And this a true fact that South East Asia is the most densely populated area in the world with a high amount of young people. Whereas, Europe & Central Asia and North America have very small growth which means these regions are populated with old people.
+
+```{r echo=FALSE}
+#ungroup(dataforgroup)
+```
+#### **_The relationship between Life Expectancy and GDP per Capita for the 2001 and 2016._**
+
+```{r echo = FALSE}
+data2001_2016 <- filter(granddata1, year =="2001" | year == "2016")
+
+ggplot(data2001_2016, aes(x=gdppercap, y = lexvalue, size = gdppercap, colour = gdppercap)) + geom_point() + geom_smooth(colour = 'red', method = 'loess')+ facet_wrap(~year) + scale_x_log10() + labs( x = 'GDP per Capita', y = 'Life Expectancy', title = 'GDP per capita vs Life Expectancy for 2001 and 2016') +theme_bw() + 
+  theme(panel.background = element_rect(fill = "linen"),
+        strip.text = element_text(colour = "#0080ff", face = "bold", size = 10), 
+        plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12)) + scale_color_continuous("GDP Per Capita") 
+``` 
+
+Next, I want to comapre the life expectancy over GDP per Capita for the year 2001 and 2016. Maybe this could depeicts the claim of WTO. And as the graph shows there is an ove all imporvement. Both, life expectancy and per capita GDP has increased in 2016 compare to 2001. 
+
+```{r echo = FALSE}
+data2001_2016 <- filter(granddata1, year =="2001" | year == "2016")
+
+ggplot(data2001_2016, aes(x=gdppercap, y = lexvalue, size = gdppercap, colour = IncomeGroup)) + geom_point() + geom_smooth(colour = 'red', method = 'loess')+ facet_wrap(~year) + scale_x_log10() + labs( x = 'GDP per Capita', y = 'Life Expectancy', title = 'GDP per capita vs Life Expectancy for 2001 and 2016') +theme_bw() + 
+  theme(panel.background = element_rect(fill = "linen"),
+        strip.text = element_text(colour = "#0080ff", face = "bold", size = 10), 
+        plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12)) + scale_color_discrete("GDP Per Capita")
+``` 
+
+So, I take a step forward and try to understand how the change has affected different income group because it will give us more clarity about the development. And as the graph shows there is holistic development. Both the low income and lower-middle-income group has made significant progress in the last two decades from 2001 to 2016. 
+
+#### **_The frequency distribution of age based on Income Group._**
+
+```{r echo=FALSE}
+ggplot(data2001_2016,aes(x =lexvalue)) + geom_histogram(aes(fill = IncomeGroup, colour = IncomeGroup),alpha=0.5, position="identity") + labs(title="Comparison of Distribution of Age based on Income Group", x = "Life Expectency (in Years)", y = "Frequency", fill = "Income Group", colour = "Income Group") + facet_wrap(~year) + theme_bw() +  
+  theme(panel.background = element_rect(fill = "linen") ,
+        strip.text = element_text(colour = "#0080ff", face = "bold", size = 10), 
+        plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12)) 
+  
+```
+
+In this graph, I want to see how the age is distributed among the different income groups and if there is any difference between 2001 and 2016. And the graph shows there is an increment in life expectancy between these years, which is also proved from other graphs. But this graph also shows that there are more countries among the high-income group which has a life expectancy of 80 years or more in 2016 compared to 2001. Similarly, more countries from lower-middle-income group concentrated between 60 to 75 years compared to 2001 when the spread was between 43 to 75. This is also showing how more countries are concentrating on the higher side of life expectancy i.e. general health care system has improved over this period around the world. 
+
+#### **_ ._**
+
+```{r}
+
+temp5 <- mutate(granddata1, decades = ifelse(year %in% 1960:1970, "1960s",
+                                      ifelse(year %in% 1971:1980, "1970s",
+                                      ifelse(year %in% 1981:1990, "1980s",
+                                      ifelse(year %in% 1991:2000, "1990s",
+                                      ifelse(year %in% 2001:2010, "2000s",
+                                      ifelse(year %in% 2011:2016, "2010s", "2020s"
+                                             )))))))
+temp6 <- temp5 %>% group_by(decades, `Country Name`) %>% summarise(meanlex = mean(lexvalue)) %>% top_n(5, wt =meanlex )
+```
+Creating a new column called 'decades' and it will contain the name of the decades if corresponding year falls within a particular year range. E.g. the decade column will have the value `1960s` for those rows for which the `year` column contains a value between **1960** to **1970** etc. Then we grouped the countries among the decades based on the average life expectancy and finally figure out the top five countries based on their mean for each decade.  
+
+```{r echo=FALSE}
+ggplot(temp6, aes(x = decades, y =meanlex,  colour =`Country Name`)) + geom_point(aes(size = meanlex)) + geom_text_repel(aes(label = `Country Name`),size = 3.5) + labs(x ="Decades", y= "Mean Life Expectancy", title = "Top 5 Countris based life expectancy for each decades", size = "Avg. Life Exp.") +theme_bw() + theme(axis.title.y = element_text(size = 12),
+      axis.title.x =element_text(size = 12), 
+      panel.background = element_rect(fill = "linen") ,
+      plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12))
+```
+
+This is an interesting graph where I want to show the top 5 countries for each decade based on their average life expectancy. As we can see between the 60s and 80s top five positions were dominated by European countries, but 90s and onwards **Japan**, **Hong Kong** and **Macao** has taken up those places. Interestingly, for the last 40 years **Japan** always maintained its position in top 5. It also shows that the average life expectancy has also increased from steadily from 75 to 80 years in the last 5 decades for these countries. Recently, **Spain** made it's place in top 5 whereas both **Iceland** and **Switzerland** lose their places.
+
+
+#### **_Dual-axis: The change of life expectancy and GDP per Capita over the years._**
+
+```{r echo= FALSE}
+
+temp7 <- granddata1 %>% group_by(year) %>% summarise(meanlex = mean(lexvalue, na.rm = T ), meanpgdppercap = mean(gdppercap, na.rm = T)) 
+
+temp7 %>% ggplot(., aes(x= meanlex, y = meanpgdppercap )) + geom_point(colour = "#006699", size = 2) + geom_line(colour = "#006699", size = 1) +  geom_text_repel(aes(label = `year`),size = 2.5) +  labs(x = "Mean Life Expectancy ", y = "Mean GDP per Capita", title = " Change of life expectancy and GDP per Capita year on year") + theme_bw() +theme(axis.title.y = element_text(size = 12),
+ axis.title.x =element_text(size = 12), 
+ panel.background = element_rect(fill = "linen") ,
+ plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12)) + scale_y_continuous(labels = scales::unit_format("K", 1e-3))                                                                                                                                                                       
+
+```
+
+This is another interesting graph, instead of using dual y-axis, I wanted to see how the average life expectancy and average GDP per capita have changed for each year. This graph shows every peak and drops as well as the rate of growth of these two variables in detail.  E.g. average GDP was increasing slowly but steadily with the increment of average life expectancy except for the first half of the 80s when we can see a small downward trend. But then there was a high jump in average GDP from 2000 until 2008 then there was some drop in 2009 and then a few minuscule drops 2012 and 2015. 
+
+```{r echo= FALSE}
+
+temp7 <- granddata1 %>% group_by(year) %>% summarise(meanlex = mean(lexvalue, na.rm = T ), meanpgdppercap = mean(gdppercap, na.rm = T)) 
+
+temp7 %>% ggplot(., aes(x= meanlex, y = meanpgdppercap )) + geom_point(colour = "#006699", size = 2) + geom_line(colour = "#006699", size = 1) +  geom_text_repel(aes(label = `year`),size = 2.5) +  labs(x = "Mean Life Expectancy ", y = "Mean GDP per Capita", title = " Change of life expectancy and GDP per Capita year on year") + 
+  theme(plot.title = element_text(hjust =0.5, margin = margin(t=5, b=5), face = "bold", size = 12),
+        plot.background = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.grid.major = element_blank(),
+              panel.border = element_blank(),
+              panel.background = element_rect(fill = "#F5F5C0")) +
+              geom_vline(xintercept = 52.5, colour = "wheat4", linetype=1) +
+              geom_vline(xintercept = 70, colour = "wheat4", linetype=3,  size = 0.5) +
+              geom_hline(yintercept = -550, colour = "wheat4", linetype=1) +
+              geom_hline(yintercept = 5000, colour = "white", linetype=1) +
+              geom_hline(yintercept = 10000, colour = "white", linetype=1) +
+              geom_hline(yintercept = 14650, colour = "wheat4", linetype=3, size = 0.5) +
+              geom_hline(yintercept = 15000, colour = "white", linetype=1) +
+              annotate("segment", x = 70, xend = 70.5, y = 14650, yend = 14000, colour = "red") +
+              annotate("text", x = 71, y = 13600, label = "Drop in GDP", size=3, colour="firebrick3")
+        
+
+```
+
+This graphic is same as the above one but it is created to show different elements of a graph such as annotation, horizontal line, vertical line etc can be customised through ggplot that makes ggplot such a powerful package for visualisation in data science.
+
+# **4. Conclusion**
+
+In conclusion, I would like to say these datasets have given me a great amount of insight regarding GDP, Population growth and changes in life expectancy about different countries around the world. And my analysis of the ageing population for the high-income countries actually matching with some other research works (https://www.nap.edu/ 2019), (Healthaffairs.org/ 2019). On one hand, high income is related to the better health care system that is related to higher life expectancy with low population growth causing an ageing population that then can slow down the economic growth or in other words holding back the GDP. On the contrary, a higher population of young people contributes immensely to the development of the economy and increasing GDP which is clearly evident from China and India. It will be interesting to see how those changing dynamics are going to affect in the next couple of decades. 
+Finally, I would like to mention that I do not try to make any conclusive decision here rather try to explore the data by implementing different functionality of R.
+
+
+# **Reference**
+
+En.wikipedia.org. (2019). World Trade Organization. [online] Available at: https://en.wikipedia.org/wiki/World_Trade_Organization [Accessed 1 Nov. 2019].
+
+https://www.nap.edu/. (2019). Future Directions for the Demography of Aging [Accessed 1 Nov. 2019].
+
+Healthaffairs.org. (2019). Population Aging In Developing Countries | Health Affairs. [online] Available at: https://www.healthaffairs.org/doi/full/10.1377/hlthaff.19.3.204 [Accessed 1 Nov. 2019].
+
+
+
+
