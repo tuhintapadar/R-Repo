@@ -1,7 +1,7 @@
 ---
-title: 'Assignment 1: Data 9910 - Working with Data'
-author: "Tuhin Subhra Tapadar [D19125073]"
-date: "1st November 2019"
+title: 'The Effect of GDP on Population & Life Expectancy'
+author: "Tuhin Subhra Tapadar"
+date: "20th May 2020"
 output:
   pdf_document: default
   html_document: default
